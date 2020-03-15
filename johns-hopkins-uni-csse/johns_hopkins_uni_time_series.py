@@ -20,7 +20,7 @@ if __name__ == "__main__":
     confirmed = download_csv_to_dataframe(TIME_SERIES_CONFIRMED_URL)
     recovered = download_csv_to_dataframe(TIME_SERIES_RECOVERED_URL)
     dead = download_csv_to_dataframe(TIME_SERIES_DEAD_URL)
-    new_df = pd.DataFrame(columns = ['date', 'city', 'province', 'country', 'lat/long', 'confirmed', 'recovered', 'dead', 'daily_diff_confirm', 'daily_diff_recover', 'daily_diff_dead'])
+    new_df = pd.DataFrame(columns = ['date', 'city', 'province', 'country', 'lat/long', 'confirmed', 'recovered', 'dead', 'daily_diff_confirm', 'daily_diff_recover', 'daily_diff_dead', 'admin_level', 'source'])
     pos = 0
     dates = confirmed.columns
     confirm_rows = confirmed.values
@@ -29,13 +29,21 @@ if __name__ == "__main__":
 
     # Iterates through values
     for ind, j in enumerate(confirm_rows):
+        level = 0
         loc_city_province = j[0].split(", ")
-        city = loc_city_province[0]
+        city = ""
         province = ""
         if len(loc_city_province) == 2:
+            city = loc_city_province[0]
             province = loc_city_province[1]
+        else:
+            province = loc_city_province[0]
         country = j[1]
         latlong = j[2] + "," + j[3]
+        if province != country and province != "" and country != "US":
+            level = 1
+            if city != "":
+                level = 2
         # Iterates through dates
         for i in range(4, len(dates)):
             daily_diff_confirm = -1
@@ -48,7 +56,7 @@ if __name__ == "__main__":
                     daily_diff_recover = int(recover_rows[ind][i]) - int(recover_rows[ind][i - 1])
                 if dead_rows[ind][i] != "" and dead_rows[ind][i - 1] != "":
                     daily_diff_dead = int(dead_rows[ind][i]) - int(dead_rows[ind][i - 1])
-            new_df.loc[pos] = [dates[i], city, province, country, latlong, confirm_rows[ind][i], recover_rows[ind][i], dead_rows[ind][i], daily_diff_confirm, daily_diff_recover, daily_diff_dead]
+            new_df.loc[pos] = [dates[i], city, province, country, latlong, confirm_rows[ind][i], recover_rows[ind][i], dead_rows[ind][i], daily_diff_confirm, daily_diff_recover, daily_diff_dead, level, 'JHU']
             pos = pos + 1
     print(new_df)
     new_df.to_csv("time_series.csv", index = False)
