@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ECharts Demo</title>
+    <style>
+        #echart,#echart2{
+            width:900px;
+            height:600px;
+        }
+    </style>
+</head>
+<body>
+<script
+        src="https://code.jquery.com/jquery-3.3.1.js"
+        integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+        crossorigin="anonymous"></script>
+<script src="https://ecomfe.github.io/echarts-examples/public/vendors/dat.gui.min.js"></script>
+<script src="https://ecomfe.github.io/echarts-examples/public/vendors/echarts/echarts.min.js?_v_=1539619315213"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="echarts-gl.js"></script>
+<div id="echart"></div>
+<div id="echart2"></div>
+<script>
+    var formatComa = d3.format(",");
+    var app={};
+    var myChart = echarts.init(document.getElementById('echart'));
+    $.get('lifepaths11.json', function (data) {
+        var series = data.series;
+        option = {
+            title: {
+                text: 'COVID-19: Deaths vs. Confirmed',
+                subtext: 'Last updated: '+new Date(data["timeline"][data["timeline"].length-1]*1000).toString(),
+                left: 'center',
+                align: 'right'
+            },
+            legend: {
+                data: data.countries,
+                top:100,
+                type: 'scroll',
+                orient: 'vertical',
+                left:'86%',
+                zlevel:100
+            },
+            grid: {
+                left:"10%",
+                //height: '90%',
+                bottom : '5%',
+                top: '10%',
+                right:'15%'
+            },
+            xAxis:
+                {
+                    type: 'log',
+                    min:1,
+                    max:1000000,
+                    nameGap:1,
+                    
+//scale: false ,
+                    name:"Confirmed",
+                    splitArea: {show: true}
+                },
+            yAxis: {
+                type: 'log',
+                min:1,
+                max:100000,
+                nameGap:15,
+                
+//scale: false ,
+                name:"Deaths",
+                splitArea: {show: true}
+            },
+            toolbox: {
+                feature: {
+                    dataZoom: {}
+                }
+            },
+            dataZoom: {
+                type: 'slider',
+                xAxisIndex: 0,
+                filterMode: 'empty',
+                show:false,
+            },
+            series: []
+        };
+        var cout={"China":"#e41a1c", "France":"#377eb8", "Germany":"#4daf4a", "Iran":"#984ea3", "Italy":"#ff7f00", "Netherlands":"#ffff33", "South Korea":"#a65628", "Spain":"#f781bf", "United Kingdom":"#6e7074", "United States":"#b2df8a"};
+        var shapes={"China":"circle", "France":"rect", "Germany":"roundRect", "Iran":"triangle", "Italy":"diamond", "Netherlands":"pin", "South Korea":"arrow", "Spain":"circle", "United Kingdom":"rect", "United States":"roundRect"}
+        data.countries.forEach(function (country) {
+            var data = [];
+            
+            series.map(function (yearData) {
+                var inter=0;
+                var item = yearData.filter(function (item) {
+                    return item[3] === country;
+                })[0];
+              if (typeof item=="object") {
+                  
+                  console.log(item);
+               // if (item=="object") {
+                //  console.log(d3.keys(cout).indexOf(item[3])*1000000000);
+                var dd=new Date(item[4]*1000).toString().split(" ");
+                var nn=item[3]+" "+dd[1]+" "+dd[2] +" Confirmed:"+formatComa(item[1])+" Deaths:"+formatComa(item[0])
+                data.push({
+                    label: {
+                        show: inter==60,
+                        position: 'top'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true
+                        }
+                    },
+                    name: nn,
+                    /*value: [Math.log10(item[1]+0.001),
+                            Math.log10(item[0]+0.001),d3.keys(cout).indexOf(item[3])*
+                            Math.pow(1000,d3.keys(cout).indexOf(item[3])),item[3],item[4]
+                            ],*/
+                    value: [
+                        item[1]+0.001,
+                        item[0]+0.001,
+                        d3.keys(cout).indexOf(item[3])* Math.pow(1000,d3.keys(cout).indexOf(item[3])),
+                        item[3],
+                        item[4]
+                    ],
+                    symbol: shapes[item[3]]
+                });
+               }
+               // }
+                inter +=1;
+                   
+               
+            });
+            var links = data.map(function (item, idx) {
+                return {
+                    source: idx,
+                    target: idx + 1
+                };
+            });
+            links.pop();
+            option.series.push
+            ({
+                name: country,
+                type: 'graph',
+                coordinateSystem: 'cartesian2d',
+                data: data,
+                links: links,
+                edgeSymbol: ['none', 'arrow'],
+                symbol: shapes[country],
+                edgeSymbolSize: 5,
+                legendHoverLink: false,
+                lineStyle: {
+                    normal:{
+                        color: cout[country]
+                    }
+                },
+                itemStyle:
+                    {
+                        normal:
+                            {
+                                borderWidth: 5,
+                                color:cout[country],
+                                borderColor: cout[country]
+                            }
+                    },
+                label: {
+                    normal:{
+                        color: "#333"
+                    },
+                    position: 'right'
+                },
+                symbolSize: 5,
+                animationDelay: function (idx) {
+                    return idx * 100;
+                }
+            });
+        });
+        myChart.setOption(option);
+      var c = document.createElement("CANVAS");
+    
+    c.id = "CursorLayer";
+c.width = 675;
+       // alert(675/6);
+c.height = 510;
+c.style.zIndex = -9;
+c.style.position = "absolute";
+c.style.top = "68px";  
+    c.style.left = "98px";
+c.style.border = "1px solid";
+var ctx = c.getContext("2d");
+ctx.beginPath();
+ctx.moveTo(675/6*3,510);
+ctx.lineTo(675,510/5*2);
+ctx.strokeStyle = "#FF0000";        
+ctx.stroke();
+//console.log(c);
+   
+    
+   // var ctx = c.getContext("2d");
+ctx.beginPath();
+ctx.moveTo(675/6,510);
+ctx.lineTo(675,0);
+ctx.strokeStyle = "#FF0000";        
+ctx.stroke();
+
+   // var ctx = c.getContext("2d");
+ctx.beginPath();
+ctx.moveTo(675/6*2,510);
+ctx.lineTo(675,510/5);
+ctx.strokeStyle = "#FF0000";        
+ctx.stroke();
+   ctx.font = "16px Arial";
+        ctx.fillStyle = "#FF0000";   
+ctx.fillText("10%", 630, 20);
+    
+
+    ctx.font = "16px Arial";
+ctx.fillStyle = "#FF0000";           
+ctx.fillText("1%", 630, 110); 
+    
+
+    ctx.font = "16px Arial";
+        ctx.fillStyle = "#FF0000";   
+ctx.fillText("0.1%", 630, 210);     
+    
+    var font, lineHeight, x, y;
+
+x = 100;
+y = 600;
+font = 20;
+lineHeight = 15; // this is guess and check as far as I know
+//c.font = font + 'px Arial';
+
+
+
+    
+    
+    
+    document.getElementById("echart2").appendChild(c);
+    
+    
+    });
+</script>
+</body>
+</html>
